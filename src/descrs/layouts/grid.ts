@@ -1,4 +1,4 @@
-import { ILayoutDescr, UIDescr, UIFullStructDescr } from '../../descrui';
+import { UIDescr, ILayoutDescr, GroupItems } from "../../core/uiDescr";
 
 type NumberAttr =
   | number
@@ -36,22 +36,26 @@ type Row = {
   
 type ColType = UIDescr | ColProps;
 
+export function col<T extends UIDescr>(descr: T, props?: Omit<ColProps, "descr">): ColType  {
+    return {descr, ...props}
+}
+
 export class GridLayout implements ILayoutDescr {
+
     rows: Row[] = [];
+    fluid?: boolean;
     
-    implArgs!: UIFullStructDescr;
-
-    parent?: any;
-
     static isColProps(col: ColType): col is ColProps {
         return !(col.hasOwnProperty('__styleType'));
     }
 
-    static descr(): GridLayout {
-        return new GridLayout();
+    static descr(props?: {fluid?: boolean}): GridLayout {
+        const res = new GridLayout();
+        res.fluid = props ? props.fluid: undefined;
+        return res;
     }
 
-    items():  UIDescr[] {
+    items():  GroupItems {
         if (!this.rows)
             return [];
         let res = [];
@@ -63,14 +67,9 @@ export class GridLayout implements ILayoutDescr {
                     res.push(col);
             }
         }
-        return res as UIDescr[];
+        return res;
     }
     
-    setImplArgs(implArgs: UIFullStructDescr): void {
-        this.implArgs = implArgs;
-    }
-
-
     public cols(...cols: ColType[]): GridLayout {
         this.rows[this.rows.length-1].cols = cols;
         return this;
@@ -81,5 +80,8 @@ export class GridLayout implements ILayoutDescr {
         return this;
     }
 
+    public rowCols(...cols: ColType[]): GridLayout {
+        return this.row().cols(...cols);
+    }
 
 }

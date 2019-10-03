@@ -1,0 +1,699 @@
+import React, { PureComponent, ReactElement, ElementType, Component } from "react";
+
+export interface StyleProps extends React.CSSProperties {
+};
+
+export class DataProps {
+};
+
+export class EventProps {
+    onClick?: React.MouseEventHandler;
+}
+
+export type StyleType<T extends UIDescr> = T[keyof {__styleType: any}];
+export type DataType<T extends UIDescr> = T[keyof {__dataType: any}];
+export type EventsType<T extends UIDescr> = T[keyof {__eventsType: any}];
+type DescrType<T extends {descr: UIDescr}> = T[keyof {descr: any}];
+type DescrProperty = {descr: UIDescr};
+export type DsImplArgs<T extends UIDescr> = {
+    style: StyleType<T>, 
+    data: DataType<T>, 
+    events: EventsType<T>,
+    childrenImplArgs: DsImplArgsMap 
+} 
+
+export type UIImplArgs<S extends StyleProps = StyleProps, D extends DataProps = DataProps, E extends EventProps = EventProps> = DsImplArgs<UIDescr<S, D, E>>;
+
+export type SimpleDsImplArgs = Omit<DsImplArgs<any>, 'childrenImplArgs'>;
+
+export const emptyImplArgs = (): SimpleDsImplArgs => {
+    return {
+        style: {},
+        data: {},
+        events: {}
+    }
+}
+
+export class DsImplArgsMap {
+
+    private map?: Map<UIDescr, SimpleDsImplArgs>;
+
+    getImpArgs(descr: UIDescr, extraStyle?: StyleProps): DsImplArgs<any> {
+        const args = this.map ? this.map.get(descr) : emptyImplArgs();
+        return { 
+            ...mergeStyle(
+                args? args : emptyImplArgs(),
+                extraStyle), 
+            childrenImplArgs: this
+        };
+    }
+
+    add(descr: UIDescr, implArgs: SimpleDsImplArgs) {
+        if (!this.map) {
+            this.map = new Map<UIDescr, SimpleDsImplArgs>();
+        }
+        this.map.set(descr, implArgs);
+    }
+
+    resolveDescr(descr: UIDescr, extraStyle?: StyleProps): ReactElement | TDefImplFunc1 {
+        return descr.resolve(this.getImpArgs(descr, extraStyle));
+    }
+
+}
+
+export const createDsImplArgsMap = (): DsImplArgsMap => {
+    return new DsImplArgsMap();
+}
+
+type DescrArgs<T> = {[index in keyof T]?: T[index]};
+
+const uiImplArgs = (args: DsImplArgs<any>) => {
+    return { style: args.style,  }
+
+}
+
+export function implArgs2props<T extends UIDescr>(args: DsImplArgs<T>): any {
+    if (args)
+        return {
+            ...args.style,
+            ...args.data,
+            ...args.events,
+            style: args.style}
+    else return {
+    }
+}
+
+type TDefImplFunc1<
+S extends StyleProps = StyleProps,
+D extends DataProps = DataProps, 
+E extends EventProps = EventProps 
+> = (implArgs: UIImplArgs<S, D, E>) => ReactElement;
+
+
+type TDefImplFunc<
+    S extends StyleProps = StyleProps,
+    D extends DataProps = DataProps, 
+    E extends EventProps = EventProps 
+> = (implArgs: UIImplArgs<S, D, E>) => TDefImplFunc1<S, D, E>;
+
+export const makeDefImplFunc = (type: ElementType, childrenFunc: (implArgs: DsImplArgs<any>) => any[] = () => []): TDefImplFunc1 => {
+        return (implArgs: UIImplArgs): ReactElement => {
+            return React.createElement(type, implArgs2props(implArgs), ...childrenFunc(implArgs))
+        }
+    
+}
+
+export class UIDescr<
+    S extends StyleProps = StyleProps,
+    D extends DataProps = DataProps, 
+    E extends EventProps = EventProps> {
+    
+    readonly __styleType!: S;
+    readonly __dataType!: D;
+    readonly __eventsType!: E;
+
+    protected defImplFunc?: TDefImplFunc1;
+
+    public parent?: GroupDescr<any, any, any>;
+
+    defaultImpl(implArgs: UIImplArgs<S, D, E>): ReactElement {
+        if (this.defImplFunc)
+            return this.defImplFunc(implArgs)
+        else 
+            return <div {...implArgs2props(implArgs)}></div> 
+    }
+
+    public resolve(
+        args: DsImplArgs<UIDescr<S, D, E>>, 
+        rules: IUIDescrToImplRules = globalDescrToImplRules): ReactElement {
+
+        let res = rules.resolve(this, args);
+        if (!res) {
+            res = this.defaultImpl(args)
+        }
+        return res;
+    }
+    
+}
+
+export class GroupDescr<
+    S extends StyleProps = StyleProps,
+    D extends DataProps = DataProps, 
+    E extends EventProps = EventProps> extends UIDescr<S, D, E> {
+
+    public readonly children: UIDescr[];
+    public layoutDescr?: ILayoutDescr;
+    public rules: ILayoutDescrToImplRules;
+
+    constructor(
+        children: UIDescr[] | ILayoutDescr, 
+        rules: ILayoutDescrToImplRules = globalLayoutRules) {
+
+        super();
+        if (children instanceof Array) {
+            this.children = children;
+        } else {
+            this.layoutDescr = children;
+            this.children = children.items();
+        }
+        this.rules = rules;
+        if (children) {
+            for (const item of this.children) {
+                item.parent = this;
+            }
+        }
+    }
+
+    resolveGroupLayout = (childrenImplArgs: DsImplArgsMap): ReactElement => {
+        let ldescr = this.layoutDescr!;
+        if (!this.layoutDescr) {
+            ldescr = new BaseLayoutDescr(this.children, this)
+        }
+        ldescr.descr = this;
+        return resolveLayoutDescr(ldescr, this.children, childrenImplArgs, this.rules);
+    }
+
+    defaultImpl(implArgs: UIImplArgs<S, D, E>): ReactElement { 
+        return this.resolveGroupLayout(implArgs.childrenImplArgs);
+    }
+}
+
+type TResolveFunc = <
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >  
+> (descr: T, args: DsImplArgs<T>) => ReactElement | null 
+
+interface IUIDescrToImplRule<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >
+> {
+    _descrType: {new ():T};
+    resolve: (descr: T, args: DsImplArgs<T>) => ReactElement | null;
+}
+
+class UIDescrToImplRule<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    > 
+> implements IUIDescrToImplRule<T> {
+    _descrType: {new ():T};
+    
+    private _func: (descr: T, args: DsImplArgs<T>) => ReactElement | null;
+
+    constructor(
+        descrType: {new (): T}, 
+        func: TImplFunc<T>) {
+
+        this._descrType = descrType;
+        this._func = func;
+    }
+
+    resolve = (descr: T, args: DsImplArgs<T>): ReactElement | null => {
+        return this._func(descr, args);
+    }
+
+}
+
+interface IUIDescrToImplRules {
+    add: <T extends UIDescr>(rule: IUIDescrToImplRule<T>) => IUIDescrToImplRules;
+    resolve: TResolveFunc;
+}
+
+class UIDescrToImplRules implements IUIDescrToImplRules {
+
+    rules: IUIDescrToImplRule<any>[] = [];
+
+    add = <T extends UIDescr>(rule: IUIDescrToImplRule<T>): UIDescrToImplRules => {
+        this.rules.push(rule);
+        return this;
+    }
+
+    resolve = <T extends UIDescr>(descr: T, args: DsImplArgs<T>): ReactElement | null => {
+        for (const rule of this.rules) {
+            if (descr instanceof rule._descrType) {
+                let res = rule.resolve(descr, args);
+                if (res) 
+                    return res;
+            }
+        }
+        return null;
+    }
+
+}
+
+let globalDescrToImplRules = new UIDescrToImplRules();
+
+type TImplFunc<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >
+> = (descr: T, args: DsImplArgs<T>) => ReactElement | null;
+
+export function addImplRule<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >,
+    ST extends UIImplStruct<T>, 
+    I extends UIImpl<ST> | React.Component 
+> (
+    descrConstr: {new ():T}, 
+    implConstr: {new (args: UIImplPropsType<ST>): I} | TImplFunc<T>, 
+    rules: IUIDescrToImplRules = globalDescrToImplRules) {
+
+    if (implConstr instanceof Function) {
+        rules.add(
+            new UIDescrToImplRule<T>(descrConstr, implConstr as TImplFunc<T>)
+        );    
+    }
+    else {
+        rules.add(
+            new UIDescrToImplRule<T>(descrConstr, 
+                (descr: T, args: DsImplArgs<T>): ReactElement => {
+                    return React.createElement(implConstr, {descr, ...args})
+                }
+        ));
+    }
+}
+
+
+export type Style<T extends any> = {
+    [index in Exclude<keyof T, keyof DescrProperty>]?: StyleType<T[index]>;
+}
+
+export type Data<T extends any> = {
+    [index in Exclude<keyof T, keyof DescrProperty>]?: DataType<T[index]>;
+}
+
+export type Events<T extends any> = {
+    [index in Exclude<keyof T, keyof DescrProperty>]?: EventsType<T[index]>;
+}
+
+interface IUIImplStruct {
+    descr: UIDescr;
+    [key: string]: UIDescr;
+}
+
+export class UIImplStruct<T extends UIDescr<StyleType<T>, DataType<T>, EventsType<T>>> {
+    descr: T;
+
+    constructor(descr: T) {
+        this.descr = descr;
+    }
+
+    items(): Map<string, UIDescr> {
+        var res = new Map<string, UIDescr>();
+        for (const [key, val] of Object.entries(this)) {
+            if (key != 'descr' && val instanceof UIDescr) {
+                res.set(key, val);
+            }
+        }
+        return res;
+    }
+}
+
+/**
+ * Description of layout all the sub elements of ILayoutDescr.descr
+ *
+ * @export
+ * @interface ILayoutDescr
+ */
+export interface ILayoutDescr {
+    /**
+     * UIDescr instance which implementation sub elements is layouted here
+     *
+     * @type {UIDescr}
+     * @memberof ILayoutDescr
+     */
+    descr: UIDescr;
+    /**
+     *  All the sub elements which will be layouted here
+     *
+     * @returns {UIDescr[]}
+     * @memberof ILayoutDescr
+     */
+    items():  UIDescr[];
+}
+
+type TResolveLayoutDescrFunc<T extends ILayoutDescr> = 
+    (items: UIDescr[], 
+        implArgsMap: DsImplArgsMap,
+        layoutDescr: T, 
+        rules?: IUIDescrToImplRules
+    ) => ReactElement;
+
+type TLayoutImpl<T extends ILayoutDescr> = 
+    { resolve: TResolveLayoutDescrFunc<T> } | 
+    TResolveLayoutDescrFunc<T>;
+
+interface ILayoutDescrToImplRule<T extends ILayoutDescr, IT extends TLayoutImpl<T>> {
+    _descrType: {new ():T};
+    _impl: IT;
+
+    resolve: (layoutDescr: T)  => IT;
+}
+    
+class LayoutDescrToImplRule<
+    T extends ILayoutDescr, 
+    IT extends TLayoutImpl<T>
+> implements ILayoutDescrToImplRule<T, IT> {
+    _descrType: {new ():T};
+    _impl: IT;
+
+    constructor(descrType: {new ():T}, _impl: IT) {
+        this._descrType = descrType;
+        this._impl = _impl;
+    }
+
+    resolve = (layoutDescr: T): IT => {
+        return this._impl;
+    }
+}
+
+export interface ILayoutDescrToImplRules {
+    add: (rule: ILayoutDescrToImplRule<any, any>) => ILayoutDescrToImplRules;
+    resolve: <T extends ILayoutDescr>(
+        layoutDescr: T
+    ) => TLayoutImpl<T>;
+}
+
+class LayoutDescrToImplRules implements ILayoutDescrToImplRules {
+
+    rules: ILayoutDescrToImplRule<any, any>[] = [];
+
+    add = (rule: ILayoutDescrToImplRule<any, any>): ILayoutDescrToImplRules => {
+        this.rules.push(rule);
+        return this;
+    }
+
+    resolve = <T extends ILayoutDescr>(
+        layoutDescr: T
+    ): TLayoutImpl<T> => {
+
+        for (const rule of this.rules) {
+            if (layoutDescr instanceof rule._descrType) {
+                let res = rule.resolve(layoutDescr);
+                if (res) 
+                    return res;
+            }
+        }
+        if (layoutDescr instanceof BaseLayoutDescr) {
+            return baseLayoutImpl as TLayoutImpl<T>;
+        } else if (layoutDescr instanceof LayoutDescrArray) {
+            return layoutArrayImpl as TLayoutImpl<T>;
+        } else 
+            throw new Error("cannot find layout implementation");
+    }
+
+}
+
+export const globalLayoutRules = new LayoutDescrToImplRules();
+
+export function addLayoutImplRule<
+    T extends ILayoutDescr, IT extends TLayoutImpl<T>>
+    (descrConstr: {new ():T}, 
+    impl: IT, rules: ILayoutDescrToImplRules = globalLayoutRules) {
+
+    rules.add(
+        new LayoutDescrToImplRule<T, IT>(descrConstr, impl)
+    );    
+}
+
+let resolveLayoutDescr = <T extends ILayoutDescr>(
+    layoutDescr: T, 
+    items: UIDescr[],
+    implArgsMap: DsImplArgsMap,
+    rules: ILayoutDescrToImplRules = globalLayoutRules): ReactElement => {
+
+    let impl: TLayoutImpl<T> = rules.resolve(layoutDescr);
+    if (impl instanceof Function) {
+        return impl(items, implArgsMap, layoutDescr);
+    }
+    else 
+        return impl.resolve(items, implArgsMap, layoutDescr);
+}
+
+class BaseLayoutDescr implements ILayoutDescr {
+
+    descr: UIDescr;
+    struct: UIDescr[] | UIImplStruct<any>;
+
+    constructor(struct: UIDescr[] | UIImplStruct<any>, descr: UIDescr) {
+        this.struct = struct;
+        this.descr = descr;
+    }
+
+    items(): UIDescr[] {
+        if (this.struct instanceof Array) {
+            return this.struct;
+        } else {
+            return Array.from(this.struct.items().values());
+        }
+    }
+}
+
+export class LayoutDescrArray implements ILayoutDescr {
+
+    descr: UIDescr;
+    layouts: ILayoutDescr[];
+
+    constructor(layouts: ILayoutDescr[], descr: UIDescr) {
+        this.layouts = layouts;
+        this.descr = descr;
+    }
+
+    static descr(layouts: ILayoutDescr[], descr: UIDescr): LayoutDescrArray {
+        return new LayoutDescrArray(layouts, descr);
+    }
+
+    items(): UIDescr[] {
+        const res: any = [];
+        for (const item of this.layouts) {
+            res.push(item.items());
+        }
+        return res;
+    }
+
+}
+
+const baseLayoutImpl = <T extends BaseLayoutDescr = BaseLayoutDescr>(
+    items: UIDescr[],
+    implArgsMap: DsImplArgsMap,
+    layoutDescr: T, 
+    rules: IUIDescrToImplRules = globalDescrToImplRules): ReactElement => {
+
+    let elements = [];
+    for (const item of layoutDescr.items()) {
+        // we must avoid of placing the elements who belong to another group
+        if (!item.parent || (layoutDescr.descr && layoutDescr.descr === item.parent)) {
+            elements.push(
+                item.resolve(
+                    implArgsMap.getImpArgs(item), 
+                    rules)
+            )
+        }
+    }
+    return <>{elements}</>;
+}
+
+const layoutArrayImpl = <T extends LayoutDescrArray = LayoutDescrArray>(
+    items: UIDescr[],
+    implArgsMap: DsImplArgsMap,
+    layoutDescr: T, rules: IUIDescrToImplRules = globalDescrToImplRules
+): ReactElement => {
+
+    let elements = [];
+    for (const item of layoutDescr.layouts) {
+        elements.push(
+            resolveLayoutDescr(item, layoutDescr.items(), implArgsMap));
+    }
+    return <>
+        {elements}
+    </>;
+}
+
+type UIImplPropsType<
+    ST extends UIImplStruct<T>, 
+    T extends UIDescr = DescrType<ST>> = Partial<DsImplArgs<DescrType<ST>>> & { descr: T, struct: ST};
+
+
+export class UIImpl<
+    ST extends UIImplStruct<T>, 
+    T extends UIDescr = DescrType<ST>,
+    P extends UIImplPropsType<ST> = UIImplPropsType<ST>
+> extends Component<P> {
+    
+    struct!: ST;
+
+    constructor(args: P) {
+        super(args); 
+        this.struct = args.struct;
+    }
+
+    protected descrLayout = (): ILayoutDescr => 
+        new BaseLayoutDescr(this.struct, this.struct.descr);
+
+    protected descrStyle = (): Style<ST> => ({})
+
+    protected descrData = (): Data<ST> => ({})
+
+    protected descrEvents = (): Events<ST> => ({})
+
+    private _implArgsMap = (): DsImplArgsMap => {
+        let style = this.descrStyle();
+        let data = this.descrData();
+        let events = this.descrEvents();
+        let res = createDsImplArgsMap();
+        for (const [key, val] of this.struct.items().entries()) {
+            let implArgs = {
+                style: style[key as keyof Style<ST>],
+                data: data[key as keyof Data<ST>],
+                events: events[key as keyof Events<ST>] 
+            };
+            res.add(val, implArgs);
+        }
+        return res;
+    }
+
+    render() {
+        let layoutDescr = this.descrLayout();
+        return resolveLayoutDescr(layoutDescr, [...this.struct.items().values()], this._implArgsMap());
+    }
+
+}
+
+
+interface TestStyle extends StyleProps {
+    f3?: number;
+}
+ 
+class TestElement extends UIDescr<TestStyle> {
+    gg?: {};
+}
+
+interface InputStyle extends StyleProps {
+    inputColor?: number;
+}
+
+class Input extends UIDescr<InputStyle> {
+}
+
+export interface ButtonStyle extends StyleProps {
+    buttonColor?: number;
+}
+
+export interface ButtonData extends DataProps {
+    text?: string;
+}
+
+class Test {
+    a = 1;
+}
+
+export class Button extends UIDescr<ButtonStyle, ButtonData> {
+    text?: string;
+
+    defImplFunc = makeDefImplFunc('button', (implArgs: DsImplArgs<Button>) => [implArgs.data.text ? implArgs.data.text : this.text]);
+}
+
+export const button = makeCreateDescrFunc(Button);
+
+interface GroupBoxStyle extends StyleProps {
+    buttonColor?: number;
+}
+
+class GroupBox extends GroupDescr<GroupBoxStyle> {
+    title?: string;
+}
+
+export function descr<T extends UIDescr>(_constr: new () => T, args?: { [key in keyof T]?: T[key]}): T {
+    let res = new _constr();
+    if (args)
+        Object.assign(res, args);
+    return res;
+}
+
+type TDescrCreateFunc<T extends UIDescr> = (args?: { [key in keyof T]?: T[key]}) => T;
+
+export function makeCreateDescrFunc<T extends UIDescr>(_constr: new () => T): TDescrCreateFunc<T> {
+    return (args?: { [key in keyof T]?: T[key]}) => {
+        return descr(_constr, args)
+    }
+}
+
+export function groupDescr<T extends GroupDescr>(
+    _constr: new (children: UIDescr[] | ILayoutDescr, rules: ILayoutDescrToImplRules) => T, 
+    children: UIDescr[] | ILayoutDescr,
+    args?: { [key in keyof T]?: T[key]}, 
+    rules: ILayoutDescrToImplRules = globalLayoutRules): T {
+    let res = new _constr(children, rules);
+    if (args)
+        Object.assign(res, args);
+    return res;
+}
+
+export function group(
+    children: UIDescr[] | ILayoutDescr,
+    args?: { [key in keyof GroupDescr]?: GroupDescr[key]}, 
+    rules: ILayoutDescrToImplRules = globalLayoutRules): GroupDescr {
+    let res = new GroupDescr(children, rules);
+    if (args)
+        Object.assign(res, args);
+    return res;
+}
+
+interface PersonInputStyle extends StyleProps {
+    titleFontSize: number;
+}
+
+class PersonInputEvents extends EventProps {
+    onSubmit?: (surname: string, name: string, patronymic: string) => void;
+}
+
+class PersonInputData extends DataProps {
+    surname?: string;
+    name?: string;
+    patronymic?: string;
+}
+
+class PersonInputDescr extends UIDescr<PersonInputStyle, PersonInputData, PersonInputEvents> {
+    title?: string;
+}
+
+class PersonInputStruct extends UIImplStruct<PersonInputDescr> {
+    surname = descr(Input);
+    name = descr(Input);
+    patronymic = descr(Input);
+    group = groupDescr(
+        GroupBox, 
+        [this.surname, this.name, this.patronymic], 
+        { title: this.descr.title});
+    t = descr(TestElement);
+}
+
+class PersonInputImpl extends UIImpl<PersonInputStruct> {
+
+    descrStyle = (): Style<PersonInputStruct> => (
+        { 
+            name: { inputColor: 1},
+            surname: { inputColor: 0 },
+            t: { f3: 9 }
+        }
+    )
+
+}
+
+addImplRule(PersonInputDescr, PersonInputImpl);
+
+

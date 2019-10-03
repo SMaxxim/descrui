@@ -1,13 +1,20 @@
-import { GroupDescr, ILayoutDescr, UIDescr, globalLayoutRules, ILayoutDescrToImplRules } from "../descrui";
+import { UIDescr, StyleType, EventsType, DataType, createDsImplArgsMap, GroupDescr } from "../core/uiDescr"
+import { LayoutDescrToImplRules } from "../core/layoutImplRules";
+import { BaseLayoutDescr } from "../core/layoutDescr";
+import { UIDescrToImplRules } from "../core/uiImplRules";
 
-export class AppDescr extends GroupDescr {
+GroupDescr.defaultLayoutDescr = BaseLayoutDescr;
+GroupDescr.globalLayoutRules = new LayoutDescrToImplRules();
+UIDescr.globalDescrToImplRules = new UIDescrToImplRules();
 
-}
-
-export const treksApp = (
-    children: UIDescr[] | ILayoutDescr, 
-    rules: ILayoutDescrToImplRules = globalLayoutRules): React.FC => {
-    return () => { 
-        return new AppDescr(children, rules).resolve()
-    };
+export function descruiApp<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >
+>(appDescr: T, style?: StyleType<T>, data?: DataType<T>, events?: EventsType<T>): React.FC {
+        return () => {return appDescr.resolve(
+            {style, data, events, childrenImplArgs: createDsImplArgsMap()})
+        }
 }

@@ -1,22 +1,33 @@
 import React from 'react';
-import { addImplRule, Button, ButtonStyle, DataProps, EventProps, addLayoutImplRule } from "../../descrui";
 import { Button as BootstrapButton, Container, Row, Col } from  'react-bootstrap' 
-import { GridLayout } from '../../descrs/layouts/grid';
 import 'bootstrap/dist/css/bootstrap.css';
+import { addImplRule } from '../../core/uiImplRules';
+import { Button, ButtonStyle, ButtonData } from '../../descrs/button';
+import { EventProps, UIDescr, DsImplArgsMap, GroupItems } from '../../core/uiDescr';
+import { GridLayout } from '../../descrs/layouts/grid';
+import { addLayoutImplRule } from '../../core/layoutImplRules';
 
 export function addBootstrapRules() {
-    addImplRule(Button, (args: {
-        descr: Button, 
-        style?: ButtonStyle, 
-        data?: DataProps, 
-        events?: EventProps}) => 
+    addImplRule(Button, 
+        (descr: Button, 
+        args: {
+            style?: ButtonStyle, 
+            data?: ButtonData, 
+            events?: EventProps
+        }) => 
             <BootstrapButton  style={args.style}>
-            {args.descr.text}
-            </BootstrapButton>)
+            {args.data && args.data.text ? 
+                args.data.text : 
+                descr.text}
+            </BootstrapButton>
+    )
 
-    addLayoutImplRule(GridLayout, (layoutDescr: GridLayout) => {
+    addLayoutImplRule(GridLayout, (
+        items: GroupItems, 
+        implArgsMap: DsImplArgsMap, 
+        layoutDescr: GridLayout) => {
         return (
-            <Container fluid>
+            <Container fluid={layoutDescr.fluid}>
                 {layoutDescr.rows.map(
                     row => 
                         (<Row as={row.as} noGutters={row.noGutters}>
@@ -24,10 +35,10 @@ export function addBootstrapRules() {
                                 col => 
                                     GridLayout.isColProps(col)?
                                         <Col as={col.colAs} xs={col.xs} sm={col.sm} md={col.md} lg={col.lg} xl={col.xl}>
-                                            {col.descr.resolve({style: {width: '100%'}, ...layoutDescr.implArgs.get(col.descr)!})}
+                                            {implArgsMap.resolveDescr(col.descr, {width: '100%'})}
                                         </Col>:
                                         <Col>
-                                            {col.resolve({style: {width: '100%'}, ...layoutDescr.implArgs.get(col)!})}
+                                            {implArgsMap.resolveDescr(col, {width: '100%'})}
                                         </Col>
 
                             )}
