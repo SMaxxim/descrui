@@ -18,7 +18,7 @@ export type Events<T extends any> = {
 }
 
 export type Elements<T extends any> = {
-    [index in Exclude<keyof T, keyof UIImplStructNonDescrProperties>]?: ReactElement;
+    [index in Exclude<keyof T, keyof UIImplStructNonDescrProperties>]: ReactElement;
 }
 
 export type UIImplStructNonDescrProperties = {

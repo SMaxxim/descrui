@@ -1,19 +1,52 @@
 import React, { ReactElement, ElementType, ReactNode } from "react";
 import { mergeStyle } from "./styleUtils";
 
+
+/**
+ * style properties of ui element
+ *
+ * @export
+ * @interface StyleProps
+ * @extends {React.CSSProperties}
+ */
 export interface StyleProps extends React.CSSProperties {
+    cssClassName?: string;
 };
 
+/**
+ * data properties of ui element: like text in the button, list of values in the select element
+ *
+ * @export
+ * @class DataProps
+ */
 export class DataProps {
 };
 
-export class EventProps {
-    onClick?: React.MouseEventHandler;
+/**
+ * events of element, #TODO there is a question whether it needs to inherit it from DOMAttributes
+ *
+ * @export
+ * @interface EventProps
+ * @extends {React.DOMAttributes<T>}
+ * @template T
+ */
+export interface EventProps<T = Element> extends React.DOMAttributes<T> {
 }
 
+// type for extracting type of __styleType property from UIDescr
+// that trick is basic feature of descrui, it helps to separate style properties of element from other properties 
+// like this: function<T extends UIDescr>(): StyleType<T> { ... }
 export type StyleType<T extends UIDescr> = T[keyof {__styleType: any}];
+
+// type for extracting type of __dataType property from UIDescr
 export type DataType<T extends UIDescr> = T[keyof {__dataType: any}];
+
+// type for extracting type of __eventsType property from UIDescr
 export type EventsType<T extends UIDescr> = T[keyof {__eventsType: any}];
+
+// implementation details of ui element 
+// #TODO there is a question whether it needed to have childrenImplArgs property, 
+// now it needed because GroupDescr is inheritor of UIDescr and their both have resolve method with DsImplArgs as argument
 export type DsImplArgs<T extends UIDescr> = {
     style: StyleType<T>, 
     data: DataType<T>, 
@@ -21,10 +54,18 @@ export type DsImplArgs<T extends UIDescr> = {
     childrenImplArgs: DsImplArgsMap 
 } 
 
-export type UIImplArgs<S extends StyleProps = StyleProps, D extends DataProps = DataProps, E extends EventProps = EventProps> = DsImplArgs<UIDescr<S, D, E>>;
+// implementation details of ui element, that type is used in methods of UIDescr
+// because i don't find how to use DsImplArgs in that methods
+export type UIImplArgs<
+    S extends StyleProps = StyleProps, 
+    D extends DataProps = DataProps, 
+    E extends EventProps = EventProps> = 
+        DsImplArgs<UIDescr<S, D, E>>;
 
+// implementation details of ui elements for simple element
 export type SimpleDsImplArgs<T extends UIDescr = any> = Omit<DsImplArgs<T>, 'childrenImplArgs'>;
 
+// create empty implementation details of ui elements
 export const emptyImplArgs = (): SimpleDsImplArgs => {
     return {
         style: {},
@@ -33,6 +74,13 @@ export const emptyImplArgs = (): SimpleDsImplArgs => {
     }
 }
 
+
+/**
+ * map of implementation details of ui elements, key: UIDescr, value: SimpleDsImplArgs
+ *
+ * @export
+ * @class DsImplArgsMap
+ */
 export class DsImplArgsMap {
 
     private map?: Map<UIDescr, SimpleDsImplArgs>;
@@ -47,6 +95,13 @@ export class DsImplArgsMap {
         };
     }
 
+    /**
+     * add implementation details of ui element
+     *
+     * @param {UIDescr} descr ui element description
+     * @param {SimpleDsImplArgs} implArgs implementation details of ui element
+     * @memberof DsImplArgsMap
+     */
     add(descr: UIDescr, implArgs: SimpleDsImplArgs) {
         if (!this.map) {
             this.map = new Map<UIDescr, SimpleDsImplArgs>();
@@ -54,34 +109,55 @@ export class DsImplArgsMap {
         this.map.set(descr, implArgs);
     }
 
-    resolveDescr(descr: UIDescr, extraStyle?: StyleProps): ReactElement {
-        return descr.resolve(this.getImpArgs(descr, extraStyle));
+    /**
+     *  resolve ui element description to real react element
+     *
+     * @param {UIDescr} descr ui element description 
+     * @param {StyleProps} [extraStyle] extra style properties which will be added to react element
+     * @param {IUIDescrToImplRules} [rules=UIDescr.globalDescrToImplRules] rules of resolving UIDescr ro real react element
+     * @returns {ReactElement}
+     * @memberof DsImplArgsMap
+     */
+    resolveDescr(
+        descr: UIDescr, 
+        extraStyle?: StyleProps, 
+        rules: IUIDescrToImplRules = UIDescr.globalDescrToImplRules): ReactElement {
+
+        return descr.resolve(this.getImpArgs(descr, extraStyle), rules);
     }
 
 }
 
+/**
+ * create empty DsImplArgsMap
+ *
+ * @returns {DsImplArgsMap}
+ */
 export const createDsImplArgsMap = (): DsImplArgsMap => {
     return new DsImplArgsMap();
 }
 
-type DescrArgs<T> = {[index in keyof T]?: T[index]};
 
-const uiImplArgs = (args: DsImplArgs<any>) => {
-    return { style: args.style,  }
-
-}
-
-export function implArgs2props<T extends UIDescr>(args: DsImplArgs<T>): any {
+/**
+ * get props for react element from ui descr implementation details
+ *
+ * @export
+ * @template T
+ * @param {DsImplArgs<T>} args
+ * @returns {*}
+ */
+export function implArgs2props<T extends UIDescr, P = any>(args: DsImplArgs<T>): P {
     if (args)
         return {
             ...args.style,
             ...args.data,
             ...args.events,
-            style: args.style}
+            style: args.style} as any
     else return {
-    }
+    } as any
 }
 
+// function of default implementation ui element
 export type TDefImplFunc<
     S extends StyleProps = StyleProps,
     D extends DataProps = DataProps, 
@@ -89,20 +165,42 @@ export type TDefImplFunc<
 > = (implArgs: UIImplArgs<S, D, E>) => ReactElement;
 
 
-export const makeDefImplFunc = (type: ElementType, childrenFunc: (implArgs: DsImplArgs<any>) => any[] = () => []): TDefImplFunc => {
+/**
+ * function for creating a function of default implementation ui element
+ *
+ * @param {ElementType} type type of react element 'button' or 'input' etc.
+ * @param {(implArgs: DsImplArgs<any>) => any[]} [childrenFunc=() => []] function of getting of children of react element
+ * @returns {TDefImplFunc}
+ */
+export const makeDefImplFunc = (
+    type: ElementType, 
+    childrenFunc: (implArgs: DsImplArgs<any>) => any[] = () => []
+    ): TDefImplFunc => {
+
     return (implArgs: UIImplArgs): ReactElement => {
-        return React.createElement(type, implArgs2props(implArgs), ...childrenFunc(implArgs))
+        return React.createElement(
+            type, 
+            implArgs2props(implArgs), 
+            ...childrenFunc(implArgs))
     }
 }
 
+// resolve of ui descr to react element
 export type TResolveFunc<
     T extends UIDescr<
         StyleType<T>, 
         DataType<T>, 
         EventsType<T>
     >  
-> = (descr: T, args: DsImplArgs<T>) => ReactElement | null 
+> = (descr: T, args: DsImplArgs<T>) => ReactElement
 
+/**
+ *  rule of resolving UIDescr with type _descrType to react element
+ *
+ * @export
+ * @interface IUIDescrToImplRule
+ * @template T
+ */
 export interface IUIDescrToImplRule<
     T extends UIDescr<
         StyleType<T>, 
@@ -110,12 +208,41 @@ export interface IUIDescrToImplRule<
         EventsType<T>
     >
 > {
+    /**
+     * constructor of UIDescr, this is needed because there is now way to somehow save T from generic arguments
+     *
+     * @type {{new ():T}}
+     * @memberof IUIDescrToImplRule
+     */
     _descrType: {new ():T};
+    /**
+     * build react element by UIDescr and UIDescr implementation details 
+     *
+     * @memberof IUIDescrToImplRule
+     */
     resolve: (descr: T, args: DsImplArgs<T>) => ReactElement | null;
 }
 
+/**
+ * set of descr to react element rules
+ *
+ * @export
+ * @interface IUIDescrToImplRules
+ */
 export interface IUIDescrToImplRules {
+
+    /**
+     * add rule to set
+     *
+     * @memberof IUIDescrToImplRules
+     */
     add: <T extends UIDescr>(rule: IUIDescrToImplRule<T>) => IUIDescrToImplRules;
+
+    /**
+     * search the rule for descr and apply 
+     *
+     * @memberof IUIDescrToImplRules
+     */
     resolve: <
         T extends UIDescr<
             StyleType<T>, 
@@ -126,6 +253,21 @@ export interface IUIDescrToImplRules {
 }
 
 
+/**
+ * Basic building block of descrui 
+ * UIDescr it's a description of ui element, not a real element
+ * there is no visual details like color and shape of element, 
+ * main idea is that when you build you interface, you can think like this: 
+ * "ok, there is a primary button with text of "OK", there is a cancel button, there is a input" etc.
+ * and later (may be some other programmer) can decide and write some rules module: 
+ * "ok primary buttons in our site must look like this, cancel button must look like this, and inputs in our site must look like this, etc"
+ * 
+ * @export
+ * @class UIDescr
+ * @template S style properties of ui element
+ * @template D data properties of ui element
+ * @template E events of element
+ */
 export class UIDescr<
     S extends StyleProps = StyleProps,
     D extends DataProps = DataProps, 
@@ -161,7 +303,7 @@ export class UIDescr<
 }
 
 /**
- * Description of layout all the sub elements of ILayoutDescr.descr
+ * Description of the layout all the sub elements of ILayoutDescr.descr
  *
  * @export
  * @interface ILayoutDescr
@@ -176,6 +318,8 @@ export interface ILayoutDescr {
     items():  GroupItems;
 }
 
+
+// function for resolve layout description to react element 
 export type TResolveLayoutDescrFunc<T extends ILayoutDescr> = 
     (items: GroupItems, 
         implArgsMap: DsImplArgsMap,
@@ -183,6 +327,8 @@ export type TResolveLayoutDescrFunc<T extends ILayoutDescr> =
         rules?: IUIDescrToImplRules
     ) => ReactElement;
 
+
+// layout implementation, it's can some object with resolve method or just a function 
 export type TLayoutImpl<T extends ILayoutDescr> = 
     { resolve: TResolveLayoutDescrFunc<T> } | 
     TResolveLayoutDescrFunc<T>;

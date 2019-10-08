@@ -11,6 +11,7 @@ import { UIImplStruct, UIImpl, Data, Style, Elements } from './core/uiImpl';
 import { button, Button, ButtonDescr } from './descrs/button';
 import { CustomLayout } from './core/layoutDescr';
 import { HeaderDescr } from './descrs/header';
+import { withStyle } from './core/styleUtils';
 
 //addBootstrapRules();
 
@@ -61,7 +62,7 @@ class DemoAppImpl extends UIImpl<DemoAppStruct> {
                 <>
                 <HeaderDescr><button>fffffssxxx</button>test <ButtonDescr text="fsssff"/></HeaderDescr>
                 <ButtonDescr text="fff" style={{width: '100%'}}/>
-                    {elems.header}
+                    {withStyle(elems.header, { color: "yellow"})}
                     {elems.test1}
                 </>
         )
