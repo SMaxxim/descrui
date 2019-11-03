@@ -1,4 +1,4 @@
-import { DataType, StyleType, EventsType, UIDescr, DsImplArgs, ILayoutDescr, DsImplArgsMap, createDsImplArgsMap, resolveLayoutDescr } from "./uiDescr";
+import { DataType, StyleType, EventsType, UIDescr, DsImplArgs, ILayoutDescr, DsImplArgsMap, createDsImplArgsMap, resolveLayoutDescr, ImplArgs } from "./uiDescr";
 import { PureComponent, ReactElement } from "react";
 import React from "react";
 import { BaseLayoutDescr } from "./layoutDescr";
@@ -48,20 +48,20 @@ export class UIImplStruct<T extends UIDescr<StyleType<T>, DataType<T>, EventsTyp
 
 export type UIImplPropsType<
     ST extends UIImplStruct<T>, 
-    T extends UIDescr = DescrType<ST>> = Partial<DsImplArgs<DescrType<ST>>> & { descr: T, struct: ST};
+    T extends UIDescr = DescrType<ST>> = ImplArgs<DescrType<ST>> & { descr: T };
 
 
 export class UIImpl<
     ST extends UIImplStruct<T>, 
+    STATE = {},
     T extends UIDescr = DescrType<ST>,
-    P extends UIImplPropsType<ST> = UIImplPropsType<ST>
-> extends PureComponent<P> {
+    P extends UIImplPropsType<ST> = UIImplPropsType<ST> 
+> extends PureComponent<P, STATE> {
     
     struct!: ST;
 
     constructor(args: P) {
         super(args); 
-        this.struct = args.struct;
     }
 
     protected descrLayout = (): ILayoutDescr => 

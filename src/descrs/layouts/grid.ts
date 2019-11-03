@@ -1,4 +1,6 @@
 import { UIDescr, ILayoutDescr, GroupItems } from "../../core/uiDescr";
+import { CSSProperties } from "react";
+import { mergeStyle } from "../../core/styleUtils";
 
 type NumberAttr =
   | number
@@ -28,11 +30,15 @@ type ColProps = {
     lg?: ColSpec;
     xl?: ColSpec;
 }
+
+type RowSpacingType = CSSProperties["marginTop"];
+
 type Row = {
     cols: ColType[];
     as?: React.ElementType;
     noGutters?: boolean;
-  }
+    style?: CSSProperties;
+}
   
 type ColType = UIDescr | ColProps;
 
@@ -44,9 +50,13 @@ export class GridLayout implements ILayoutDescr {
 
     rows: Row[] = [];
     fluid?: boolean;
+    rowSpacingValue?: RowSpacingType;
     
     static isColProps(col: ColType): col is ColProps {
-        return !(col.hasOwnProperty('__styleType'));
+        if (!col) 
+            return false
+        else
+            return !(col.hasOwnProperty('__styleType'));
     }
 
     static descr(props?: {fluid?: boolean}): GridLayout {
@@ -70,17 +80,39 @@ export class GridLayout implements ILayoutDescr {
         return res;
     }
     
-    public cols(...cols: ColType[]): GridLayout {
-        this.rows[this.rows.length-1].cols = cols;
+    public rowSpacing(val: RowSpacingType): GridLayout {
+        this.rowSpacingValue = val;
+        return this;
+    }
+
+    public cols(...cols: (ColType | undefined)[]): GridLayout {
+        this.rows[this.rows.length-1].cols = cols.filter(item => Boolean(item)) as any;
+        return this;
+    }
+
+    public style(v: CSSProperties): GridLayout {
+        const row = this.rows[this.rows.length-1];
+        if (row.style) {
+            Object.assign(row.style, v)
+        } else {
+            row.style = v;
+        }
         return this;
     }
 
     public row(as?: React.ElementType, noGutters?: boolean): GridLayout {
-        this.rows.push({ cols: [], as, noGutters });
+        this.rows.push({ 
+            cols: [], 
+            as, 
+            noGutters, 
+            style: this.rowSpacingValue && this.rows.length > 0? { 
+                marginTop: this.rowSpacingValue 
+            }: undefined 
+        });
         return this;
     }
 
-    public rowCols(...cols: ColType[]): GridLayout {
+    public rowCols(...cols: (ColType | undefined)[]): GridLayout {
         return this.row().cols(...cols);
     }
 

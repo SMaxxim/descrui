@@ -209,7 +209,7 @@ export interface IUIDescrToImplRule<
     >
 > {
     /**
-     * constructor of UIDescr, this is needed because there is now way to somehow save T from generic arguments
+     * constructor of UIDescr, this is needed because there is no way to somehow save T from generic arguments
      *
      * @type {{new ():T}}
      * @memberof IUIDescrToImplRule

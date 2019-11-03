@@ -1,6 +1,6 @@
 import { UIDescr, StyleType, EventsType, DataType, IUIDescrToImplRule, DsImplArgs, TResolveFunc, IUIDescrToImplRules } from "./uiDescr";
 import { UIImplStruct, UIImpl, UIImplPropsType } from "./uiImpl";
-import { ReactElement } from "react";
+import { ReactElement, Component } from "react";
 import React from "react";
 
 export class UIDescrToImplRule<
@@ -50,7 +50,7 @@ export class UIDescrToImplRules implements IUIDescrToImplRules {
 
 }
 
-export function addImplRule<
+export function addImplComponent<
     T extends UIDescr<
         StyleType<T>, 
         DataType<T>, 
@@ -60,20 +60,37 @@ export function addImplRule<
     I extends UIImpl<ST> | React.Component 
 > (
     descrConstr: {new ():T}, 
-    implConstr: {new (args: UIImplPropsType<ST>): I} | TResolveFunc<T>, 
+    implConstr: new (args: UIImplPropsType<ST>) => I, 
     rules: IUIDescrToImplRules = UIDescr.globalDescrToImplRules) {
 
-    if (implConstr instanceof Function) {
-        rules.add(
-            new UIDescrToImplRule<T>(descrConstr, implConstr as TResolveFunc<T>)
-        );    
-    }
-    else {
-        rules.add(
-            new UIDescrToImplRule<T>(descrConstr, 
-                (descr: T, args: DsImplArgs<T>): ReactElement => {
-                    return React.createElement(implConstr, {descr, ...args})
-                }
-        ));
-    }
+    rules.add(
+        new UIDescrToImplRule<T>(descrConstr, 
+            (descr: T, args: DsImplArgs<T>): ReactElement => {
+                return React.createElement(
+                    implConstr as any, 
+                    { 
+                        descr, 
+                        ...args
+                    }
+                )
+            }
+    ));
 }
+
+export function addImplFunc<
+    T extends UIDescr<
+        StyleType<T>, 
+        DataType<T>, 
+        EventsType<T>
+    >,
+    ST extends UIImplStruct<T> 
+> (
+    descrConstr: {new ():T}, 
+    implConstr: TResolveFunc<T>, 
+    rules: IUIDescrToImplRules = UIDescr.globalDescrToImplRules) {
+
+    rules.add(
+        new UIDescrToImplRule<T>(descrConstr, implConstr as TResolveFunc<T>)
+    );    
+}
+

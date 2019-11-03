@@ -13,6 +13,10 @@ export const mergeStyle = (implArgs: ImplArgs, style?: StyleProps): ImplArgs => 
     return implArgs;
 }
 
+export const stylePropOrDefault = <T, K extends keyof T>(props: { style: T }, propName: K, defVal: T[K]): T[K] =>  {
+    return (props.style && props.style[propName]? props.style[propName]: defVal) 
+}
+
 export const withStyle = (el: ReactElement, style?: StyleProps): ReactElement => {
     if (!el.props.style) {
         el.props.style = style;

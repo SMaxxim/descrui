@@ -1,21 +1,21 @@
 import React from 'react';
 import { Button as BootstrapButton, Container, Row, Col } from  'react-bootstrap' 
 import 'bootstrap/dist/css/bootstrap.css';
-import { addImplRule } from '../../core/uiImplRules';
+import { addImplFunc } from '../../core/uiImplRules';
 import { Button, ButtonStyle, ButtonData } from '../../descrs/button';
 import { EventProps, UIDescr, DsImplArgsMap, GroupItems } from '../../core/uiDescr';
 import { GridLayout } from '../../descrs/layouts/grid';
 import { addLayoutImplRule } from '../../core/layoutImplRules';
 
 export function addBootstrapRules() {
-    addImplRule(Button, 
+    addImplFunc(Button, 
         (descr: Button, 
         args: {
             style?: ButtonStyle, 
             data?: ButtonData, 
             events?: EventProps
         }) => 
-            <BootstrapButton  style={args.style}>
+            <BootstrapButton  style={args.style} {...args.events}>
             {args.data && args.data.text ? 
                 args.data.text : 
                 descr.text}
@@ -30,7 +30,7 @@ export function addBootstrapRules() {
             <Container fluid={layoutDescr.fluid}>
                 {layoutDescr.rows.map(
                     row => 
-                        (<Row as={row.as} noGutters={row.noGutters}>
+                        (<Row as={row.as} noGutters={row.noGutters} style={{...row.style}}>
                             {row.cols.map(
                                 col => 
                                     GridLayout.isColProps(col)?

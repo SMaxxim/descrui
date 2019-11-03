@@ -2,6 +2,7 @@ import { StyleProps, DataProps, UIDescr, makeDefImplFunc, DsImplArgs, makeCreate
 import { ReactElement } from "react";
 import React from "react";
 import { Style } from "../core/uiImpl";
+import { dataPropOrDefault } from "../core/dataUtils";
 
 export interface ButtonStyle extends StyleProps {
     buttonColor?: number;
@@ -16,7 +17,7 @@ export class Button extends UIDescr<ButtonStyle, ButtonData> {
     text?: string;
 
 
-    defImplFunc = makeDefImplFunc('button', (implArgs: DsImplArgs<Button>) => [implArgs.data && implArgs.data.text ? implArgs.data.text : this.text]);
+    defImplFunc = makeDefImplFunc('button', (implArgs: DsImplArgs<Button>) => [dataPropOrDefault(this, implArgs, 'text')]);
 }
 
 export const button = makeCreateDescrFunc(Button);

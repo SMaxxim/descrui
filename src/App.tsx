@@ -7,14 +7,19 @@ import { GridLayout, col } from './descrs/layouts/grid';
 import { H1, h1 } from './descrs/h1';
 import { delay } from 'q';
 import { StyleProps, UIDescr, ILayoutDescr, group, descr, DsImplArgs, ImplArgs } from './core/uiDescr';
-import { UIImplStruct, UIImpl, Data, Style, Elements } from './core/uiImpl';
+import { UIImplStruct, UIImpl, Data, Style, Elements, Events } from './core/uiImpl';
 import { button, Button, ButtonDescr } from './descrs/button';
 import { CustomLayout } from './core/layoutDescr';
 import { HeaderDescr } from './descrs/header';
-import { withStyle } from './core/styleUtils';
+import { withStyle, stylePropOrDefault } from './core/styleUtils';
 import { BackgroundColorProperty } from 'csstype';
+import { DemoDescr, DemoDescrKind } from './demoDescr';
+import { addImplComponent } from './core/uiImplRules';
+import { DemoDescrImpl, addDemoDescrImplComponent } from './demoDescrImpl';
 
 addBootstrapRules();
+// and we connect description and implementation
+addDemoDescrImplComponent();
 
 interface DemoAppStyle extends StyleProps {
     headerBackgroundColor?: BackgroundColorProperty;
@@ -26,7 +31,6 @@ class DemoAppDescr extends UIDescr<DemoAppStyle> {
     defaultImpl(args: ImplArgs<DemoAppDescr>): ReactElement {
         return <DemoAppImpl 
             descr={this} 
-            struct={new DemoAppStruct(this)} 
             {...args}
         />
     }
@@ -39,30 +43,49 @@ class DemoAppStruct extends UIImplStruct<DemoAppDescr> {
     test2 = button();
     test3 = button();
     test4 = button();
+    demoDescr = descr(DemoDescr, { kind: [DemoDescrKind.withBirthday]});
+    demoDescrResult = h1({text: "ttt"});
 }
 
-class DemoAppImpl extends UIImpl<DemoAppStruct> {
+interface DemoAppImplState {
+    demoDescrResult: string;
+}
+
+class DemoAppImpl extends UIImpl<DemoAppStruct, DemoAppImplState> {
+    struct = new DemoAppStruct(this.props.descr);
+    state = {
+        demoDescrResult: ""
+    };
 
     descrData = (): Data<DemoAppStruct> => (
         { 
             test1: { text: "text1"},
             test2: { text: "text2"},
             test3: { text: "text3"}, 
-            test4: { text: "text4"} 
+            test4: { text: "text4"},
+            demoDescrResult: { text: this.state.demoDescrResult }
         }
     )
 
     descrStyle = (): Style<DemoAppStruct> => (
         { 
             header: { 
-                backgroundColor: 
-                    this.props.style && 
-                    this.props.style.headerBackgroundColor?  this.props.style.headerBackgroundColor: 'red' 
+                backgroundColor: stylePropOrDefault(this.props, 'headerBackgroundColor', 'red')
             },
             test1: { color: 'black'},
             test2: { }
         }
     )
+
+    descrEvents = (): Events<DemoAppStruct> => {
+        return {
+            demoDescr: { onSubmitData: (data) => {
+                 this.setState({demoDescrResult: data.name + " "+ data.surname})
+                } 
+            }
+        }
+    }
+
 /*
     descrLayout = (): ILayoutDescr => {
         return new CustomLayout(
@@ -80,6 +103,7 @@ class DemoAppImpl extends UIImpl<DemoAppStruct> {
 
     descrLayout = (): ILayoutDescr => {
         return GridLayout.descr({fluid: true})
+            .rowSpacing(10)
             .rowCols(
                 col(this.struct.header, {xs: true}))
             .rowCols(
@@ -88,6 +112,8 @@ class DemoAppImpl extends UIImpl<DemoAppStruct> {
                 col(this.struct.test3, {xs: true}),
                 col(this.struct.test4, {xs: true}),
             )
+            .rowCols(this.struct.demoDescr)
+            .rowCols(this.struct.demoDescrResult)
     }
 
 }
