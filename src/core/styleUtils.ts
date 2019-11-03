@@ -1,7 +1,7 @@
-import { StyleProps, SimpleDsImplArgs } from "./uiDescr";
+import { StyleProps, ImplArgs } from "./uiDescr";
 import { ReactElement } from "react";
 
-export const mergeStyle = (implArgs: SimpleDsImplArgs, style?: StyleProps): SimpleDsImplArgs => {
+export const mergeStyle = (implArgs: ImplArgs, style?: StyleProps): ImplArgs => {
     if (implArgs && style) {
         if (implArgs.style) {
             Object.assign(implArgs.style, style);

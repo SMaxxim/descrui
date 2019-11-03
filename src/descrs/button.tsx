@@ -1,4 +1,4 @@
-import { StyleProps, DataProps, UIDescr, makeDefImplFunc, DsImplArgs, makeCreateDescrFunc, StyleType, SimpleDsImplArgs, makeDescrFC } from "../core/uiDescr";
+import { StyleProps, DataProps, UIDescr, makeDefImplFunc, DsImplArgs, makeCreateDescrFunc, StyleType, ImplArgs, makeDescrFC } from "../core/uiDescr";
 import { ReactElement } from "react";
 import React from "react";
 import { Style } from "../core/uiImpl";

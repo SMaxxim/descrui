@@ -63,10 +63,10 @@ export type UIImplArgs<
         DsImplArgs<UIDescr<S, D, E>>;
 
 // implementation details of ui elements for simple element
-export type SimpleDsImplArgs<T extends UIDescr = any> = Omit<DsImplArgs<T>, 'childrenImplArgs'>;
+export type ImplArgs<T extends UIDescr = any> = Omit<DsImplArgs<T>, 'childrenImplArgs'>;
 
 // create empty implementation details of ui elements
-export const emptyImplArgs = (): SimpleDsImplArgs => {
+export const emptyImplArgs = (): ImplArgs => {
     return {
         style: {},
         data: {},
@@ -83,7 +83,7 @@ export const emptyImplArgs = (): SimpleDsImplArgs => {
  */
 export class DsImplArgsMap {
 
-    private map?: Map<UIDescr, SimpleDsImplArgs>;
+    private map?: Map<UIDescr, ImplArgs>;
 
     getImpArgs(descr: UIDescr, extraStyle?: StyleProps): DsImplArgs<any> {
         const args = this.map ? this.map.get(descr) : emptyImplArgs();
@@ -99,12 +99,12 @@ export class DsImplArgsMap {
      * add implementation details of ui element
      *
      * @param {UIDescr} descr ui element description
-     * @param {SimpleDsImplArgs} implArgs implementation details of ui element
+     * @param {ImplArgs} implArgs implementation details of ui element
      * @memberof DsImplArgsMap
      */
-    add(descr: UIDescr, implArgs: SimpleDsImplArgs) {
+    add(descr: UIDescr, implArgs: ImplArgs) {
         if (!this.map) {
-            this.map = new Map<UIDescr, SimpleDsImplArgs>();
+            this.map = new Map<UIDescr, ImplArgs>();
         }
         this.map.set(descr, implArgs);
     }
@@ -430,8 +430,8 @@ type DescrProps<T> = {
 
 
 export function makeDescrFC<T extends UIDescr>(_constr: new () => T):
-    (props: DescrProps<T> & Partial<SimpleDsImplArgs<T>>) => ReactElement {
-    return (props: DescrProps<T> & Partial<SimpleDsImplArgs<T>>): ReactElement => {
+    (props: DescrProps<T> & Partial<ImplArgs<T>>) => ReactElement {
+    return (props: DescrProps<T> & Partial<ImplArgs<T>>): ReactElement => {
         let res = descr(_constr, props);
         return res.resolve(props as any);
     }
@@ -481,8 +481,8 @@ type GroupDescrProps<T> = {
 }
 
 export function makeGroupDescrFC<T extends GroupDescr>(_constr: new (children: GroupItems | ILayoutDescr) => T):
-    (props: GroupDescrProps<T> & Partial<SimpleDsImplArgs<T>> & { children: ReactNode }) => ReactElement {
-    return (props: GroupDescrProps<T> & Partial<SimpleDsImplArgs<T>> & { children: ReactNode }): ReactElement => {
+    (props: GroupDescrProps<T> & Partial<ImplArgs<T>> & { children: ReactNode }) => ReactElement {
+    return (props: GroupDescrProps<T> & Partial<ImplArgs<T>> & { children: ReactNode }): ReactElement => {
         let res = groupDescr(_constr, props.children, props as any);
         return res.resolve(props as any);
     }

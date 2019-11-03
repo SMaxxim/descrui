@@ -6,26 +6,31 @@ import { addBootstrapRules } from './impls/bootstrap/bsrules';
 import { GridLayout, col } from './descrs/layouts/grid';
 import { H1, h1 } from './descrs/h1';
 import { delay } from 'q';
-import { StyleProps, UIDescr, ILayoutDescr, group, descr } from './core/uiDescr';
+import { StyleProps, UIDescr, ILayoutDescr, group, descr, DsImplArgs, ImplArgs } from './core/uiDescr';
 import { UIImplStruct, UIImpl, Data, Style, Elements } from './core/uiImpl';
 import { button, Button, ButtonDescr } from './descrs/button';
 import { CustomLayout } from './core/layoutDescr';
 import { HeaderDescr } from './descrs/header';
 import { withStyle } from './core/styleUtils';
+import { BackgroundColorProperty } from 'csstype';
 
-//addBootstrapRules();
+addBootstrapRules();
 
 interface DemoAppStyle extends StyleProps {
-    titleFontSize?: number;
+    headerBackgroundColor?: BackgroundColorProperty;
 }
 
 class DemoAppDescr extends UIDescr<DemoAppStyle> {
     title?: string;
 
-    defaultImpl = (): ReactElement => {
-        return <DemoAppImpl descr={this} struct={new DemoAppStruct(this)}/>
+    defaultImpl(args: ImplArgs<DemoAppDescr>): ReactElement {
+        return <DemoAppImpl 
+            descr={this} 
+            struct={new DemoAppStruct(this)} 
+            {...args}
+        />
     }
-
+ 
 }
 
 class DemoAppStruct extends UIImplStruct<DemoAppDescr> {
@@ -49,12 +54,16 @@ class DemoAppImpl extends UIImpl<DemoAppStruct> {
 
     descrStyle = (): Style<DemoAppStruct> => (
         { 
-            header: { backgroundColor: 'red'},
+            header: { 
+                backgroundColor: 
+                    this.props.style && 
+                    this.props.style.headerBackgroundColor?  this.props.style.headerBackgroundColor: 'red' 
+            },
             test1: { color: 'black'},
             test2: { }
         }
     )
-
+/*
     descrLayout = (): ILayoutDescr => {
         return new CustomLayout(
             this.struct,
@@ -67,29 +76,22 @@ class DemoAppImpl extends UIImpl<DemoAppStruct> {
                 </>
         )
     }
+*/
 
-/*
     descrLayout = (): ILayoutDescr => {
         return GridLayout.descr({fluid: true})
             .rowCols(
                 col(this.struct.header, {xs: true}))
             .rowCols(
-                col(group(
-                    GridLayout.descr({fluid: true})
-                        .rowCols(
-                            col(this.struct.test1, {xs: true}),
-                            col(this.struct.test2, {xs: true})
-                        ).rowCols(
-                            col(this.struct.test3, {xs: true}),
-                            col(this.struct.test4, {xs: true})
-                        )
-                    )
-                )
+                col(this.struct.test1, {xs: true}),
+                col(this.struct.test2, {xs: true}),
+                col(this.struct.test3, {xs: true}),
+                col(this.struct.test4, {xs: true}),
             )
-    }*/
+    }
 
 }
 
-const Root: React.FC = descruiApp(descr(DemoAppDescr));
+const Root: React.FC = descruiApp(descr(DemoAppDescr), { headerBackgroundColor: "blue"});
 
 export default Root;
