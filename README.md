@@ -133,8 +133,7 @@ export class DemoDescrImpl extends UIImpl<DemoDescrStruct, DemoDescrData> {
         {
             submit: { onClick: () => {
                 this.props.events.onSubmitData(this.state) 
-            }
-            },
+            }},
             surname: { onChange: (event: any) => 
                 this.setState({surname: event.target.value})
             },
