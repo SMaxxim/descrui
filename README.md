@@ -56,7 +56,8 @@ export class DemoDescr extends UIDescr<DemoDescrStyle, DemoDescrData, DemoDescrE
 }
 ```
 
-* and now we can create implementation of component (maybe even in another module)
+* and now we can create implementation of component (maybe even in another module).
+
   First we describe structure our component: 
 
 ```typescript
@@ -81,10 +82,8 @@ class DemoDescrStruct extends UIImplStruct<DemoDescr> {
     });
 }
 ```
-and again: here, functons like h1, button, input, it's not a real elements, 
-it's just a description of what we want to have 
-in our component, real implementation will be determined by special rules, 
-and we can choose beetwen different css-toolkits,
+and again: here, functons like h1, button, input, it's not a real elements, it's just a description of what we want to have 
+in our component, real implementation will be determined by special rules, and we can choose beetwen different css-toolkits,
 or write our own implementation.
   
 * and finally we can write implementation: special react component:  
