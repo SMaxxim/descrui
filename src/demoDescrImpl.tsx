@@ -14,22 +14,24 @@ import { addImplComponent } from "./core/uiImplRules";
  * @extends {UIImplStruct<DemoDescr>}
  */
 class DemoDescrStruct extends UIImplStruct<DemoDescr> {
-    header = h1({
-        text: "Input your data"
+    header = h1({ 
+        text: "Input your data" 
     });
-    surname = input({
-        placeholder: "Surname"
+    surname = input({ 
+        placeholder: "Surname" 
     });
-    name = input({
-        placeholder: "Name"
+    name = input({ 
+        placeholder: "Name" 
     });
-    birthday = input({
-        placeholder: 'Birthday'
+    birthday = input({ 
+        placeholder: 'Birthday' 
     });
-    patronymic = input({
-        placeholder: 'Patronymic'
+    patronymic = input({ 
+        placeholder: 'Patronymic' 
     });
-    submit = button({text: "Submit"});
+    submit = button({
+        text: "Submit"
+    });
 }
 
 /**
@@ -76,8 +78,8 @@ export class DemoDescrImpl extends UIImpl<DemoDescrStruct, DemoDescrData> {
      *
      * @memberof DemoDescrImpl
      */
-    descrEvents = (): Events<DemoDescrStruct> => {
-        return {
+    descrEvents = (): Events<DemoDescrStruct> => (
+        {
             submit: { onClick: () => {
                 this.props.events.onSubmitData(this.state) 
             }
@@ -87,9 +89,15 @@ export class DemoDescrImpl extends UIImpl<DemoDescrStruct, DemoDescrData> {
             },
             name: { onChange: (event: any) => 
                 this.setState({name: event.target.value})
+            },
+            birthday: { onChange: (event: any) => 
+                this.setState({birthday: event.target.value})
+            },
+            patronymic: { onChange: (event: any) => 
+                this.setState({patronymic: event.target.value})
             }
         }
-    }
+    )
 
     /**
      *  here we describing layout of sub elements

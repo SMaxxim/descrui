@@ -21,12 +21,8 @@ addBootstrapRules();
 // and we connect description and implementation
 addDemoDescrImplComponent();
 
-interface DemoAppStyle extends StyleProps {
-    headerBackgroundColor?: BackgroundColorProperty;
-}
 
-class DemoAppDescr extends UIDescr<DemoAppStyle> {
-    title?: string;
+class DemoAppDescr extends UIDescr {
 
     defaultImpl(args: ImplArgs<DemoAppDescr>): ReactElement {
         return <DemoAppImpl 
@@ -34,17 +30,13 @@ class DemoAppDescr extends UIDescr<DemoAppStyle> {
             {...args}
         />
     }
- 
+
 }
 
 class DemoAppStruct extends UIImplStruct<DemoAppDescr> {
-    header = h1({text: "Test Grid layout"});
-    test1 = button();
-    test2 = button();
-    test3 = button();
-    test4 = button();
+    header = h1({text: "Test App"});
     demoDescr = descr(DemoDescr, { kind: [DemoDescrKind.withBirthday]});
-    demoDescrResult = h1({text: "ttt"});
+    demoDescrResult = h1();
 }
 
 interface DemoAppImplState {
@@ -59,29 +51,16 @@ class DemoAppImpl extends UIImpl<DemoAppStruct, DemoAppImplState> {
 
     descrData = (): Data<DemoAppStruct> => (
         { 
-            test1: { text: "text1"},
-            test2: { text: "text2"},
-            test3: { text: "text3"}, 
-            test4: { text: "text4"},
             demoDescrResult: { text: this.state.demoDescrResult }
-        }
-    )
-
-    descrStyle = (): Style<DemoAppStruct> => (
-        { 
-            header: { 
-                backgroundColor: stylePropOrDefault(this.props, 'headerBackgroundColor', 'red')
-            },
-            test1: { color: 'black'},
-            test2: { }
         }
     )
 
     descrEvents = (): Events<DemoAppStruct> => {
         return {
             demoDescr: { onSubmitData: (data) => {
-                 this.setState({demoDescrResult: data.name + " "+ data.surname})
-                } 
+                this.setState({ 
+                     demoDescrResult: `${data.name} ${data.surname}, ${data.birthday}`
+                })} 
             }
         }
     }
@@ -106,18 +85,12 @@ class DemoAppImpl extends UIImpl<DemoAppStruct, DemoAppImplState> {
             .rowSpacing(10)
             .rowCols(
                 col(this.struct.header, {xs: true}))
-            .rowCols(
-                col(this.struct.test1, {xs: true}),
-                col(this.struct.test2, {xs: true}),
-                col(this.struct.test3, {xs: true}),
-                col(this.struct.test4, {xs: true}),
-            )
             .rowCols(this.struct.demoDescr)
             .rowCols(this.struct.demoDescrResult)
     }
 
 }
 
-const Root: React.FC = descruiApp(descr(DemoAppDescr), { headerBackgroundColor: "blue"});
+const Root: React.FC = descruiApp(descr(DemoAppDescr));
 
 export default Root;
