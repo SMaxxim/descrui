@@ -1,17 +1,16 @@
-stage("QA") {
-node {
-  docker.image("gradle:latest").inside{
-  sh "echo '/*throw new Exception(\"test\"); */println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
-  sh "gradle build -PENV_NAME=${ENV_NAME}"
+def nodeWithEnv(envName) {
+  node {
+    docker.image("gradle:latest").inside{
+    sh "echo '/*throw new Exception(\"test\"); */println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
+    sh "gradle build -PENV_NAME=${envName}"
+    }
   }
 }
+ 
+stage("QA") {
+  nodeWithEnv("QA");
 }
 
 stage("DEV") {
-node {
-  docker.image("gradle:latest").inside{
-  sh "echo 'throw new Exception(\"test\"); println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
-  sh "gradle build -PENV_NAME=${ENV_NAME}"
-  }
-}
+  nodeWithEnv("DEV");
 }
