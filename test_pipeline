@@ -1,5 +1,5 @@
 node {
   docker.image("gradle:latest").inside{
-  println("test!")
+  println("${ENV_NAME}")
   }
 }
