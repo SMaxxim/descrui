@@ -1,6 +1,6 @@
 node {
   docker.image("gradle:latest").inside{
-  sh "echo 'println(\"\$\{ENV_NAME\}\")' > build.gradle"
+  sh "echo 'println(\"\${ENV_NAME}\")' > build.gradle"
   sh "gradle"
   }
 }
