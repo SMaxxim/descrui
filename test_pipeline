@@ -1,3 +1,5 @@
-node("docker") {
-  docker.image("gradle:latest").inside{}
+node {
+  docker.image("gradle:latest").inside{
+  println("test!")
+  }
 }
