@@ -1,6 +1,6 @@
 node {
   docker.image("gradle:latest").inside{
-  sh "echo 'println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
+  sh "echo 'throw new Exception(\"test\"); println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
   sh "gradle build -PENV_NAME=${ENV_NAME}"
   }
 }
