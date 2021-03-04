@@ -1,0 +1,1 @@
+System.setProperty("javax.net.ssl.keyStoreType", "pkcs12");
