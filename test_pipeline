@@ -8,6 +8,7 @@ def nodeWithEnv(envName) {
 }
  
 stage("QA") {
+  logFile.append("test")
   nodeWithEnv("QA");
 }
 
