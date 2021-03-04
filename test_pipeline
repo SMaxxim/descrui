@@ -1,1 +1,3 @@
-println("<a id=\"test\">test</a>")
+node("docker") {
+  docker.image("gradle:latest").inside{}
+}
