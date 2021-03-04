@@ -1,26 +1,6 @@
-def nodeWithEnv(envName) {
-  node {
-    docker.image("gradle:latest").inside{
-    sh "echo '/*throw new Exception(\"test\"); */println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
-    sh "gradle build -PENV_NAME=${envName}"
-    }
+node {
+  docker.image("gradle:latest").inside{
+  sh "echo '/*throw new Exception(\"test\"); */println(project.getProperty(\"ENV_NAME\"))' > build.gradle"
+  sh "gradle build -PENV_NAME=${ENV_NAME} -PSERVICE_NAME=${SERVICE_NAME}"
   }
 }
- 
-stage("QA") {
-  logFile.append("test")
-  nodeWithEnv("QA");
-}
-
-stage("DEV") {
-  nodeWithEnv("DEV");
-}
-
-stage("INT") {
-  nodeWithEnv("INT");
-}
-
-stage("UAT") {
-  nodeWithEnv("UAT");
-}
-
