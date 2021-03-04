@@ -14,3 +14,12 @@ stage("QA") {
 stage("DEV") {
   nodeWithEnv("DEV");
 }
+
+stage("INT") {
+  nodeWithEnv("INT");
+}
+
+stage("UAT") {
+  nodeWithEnv("UAT");
+}
+
